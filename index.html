@@ -1,89 +1,130 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Premium Flower Shop</title>
+
+  <!-- Tailwind browser build -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
   <style>
-    /* Floating / fade animations */
-    @keyframes float { 0%{transform:translateY(0)}50%{transform:translateY(-10px)}100%{transform:translateY(0)} }
-    .animate-float{animation:float 4s ease-in-out infinite}
-    @keyframes fadeInUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-    .animate-fadeInUp{animation:fadeInUp .9s ease both}
-    /* subtle card entrance */
-    .card-enter{transform:translateY(8px);opacity:0;transition:all .28s ease}
-    .card-enter.show{transform:none;opacity:1}
+    /* Animations */
+    @keyframes float { 0%{ transform:translateY(0) } 50%{ transform:translateY(-10px) } 100%{ transform:translateY(0) } }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+
+    @keyframes fadeInUp { from{ opacity:0; transform:translateY(14px) } to{ opacity:1; transform:none } }
+    .animate-fadeInUp { animation: fadeInUp .7s ease both; }
+
+    /* Stagger CSS hook (cards) */
+    .card-enter { opacity:0; transform: translateY(10px); transition: transform .35s ease, opacity .35s ease; }
+    .card-enter.show { opacity:1; transform: none; }
+
+    /* Mobile panel transitions (width handled inline) */
+    .backdrop-blur-fixed { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+
+    /* accessible focus ring */
+    :focus { outline: 3px solid rgba(99,102,241,.15); outline-offset: 3px; }
+
+    /* Dark mode helpers (tailwind 'dark' class is toggled on <html>) */
   </style>
 </head>
-<body id="body" class="font-sans text-gray-800 bg-gray-50 transition-colors duration-300">
 
-<!-- DARK MODE + CART TOGGLE -->
-<button id="darkToggle" aria-label="Toggle dark mode" class="fixed z-50 bottom-6 right-6 bg-white/90 dark:bg-gray-800 text-gray-800 dark:text-white px-4 py-2 rounded-full shadow-lg">🌙</button>
-<button id="cartToggle" aria-label="Open cart" class="fixed z-50 bottom-6 right-24 bg-orange-500 text-white px-4 py-2 rounded-full shadow-lg">🛒 <span id="cartCount" class="ml-2 font-semibold">0</span></button>
+<body class="font-sans text-gray-800 bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
 
-<!-- MOBILE NAVIGATION PANEL -->
-<div id="mobilePanel" class="fixed inset-y-0 left-0 w-0 md:hidden bg-white shadow-lg overflow-hidden transition-all z-40">
-  <div class="p-6">
-    <button id="mobileClose" class="text-2xl mb-6">✕</button>
-    <nav class="flex flex-col gap-4 text-lg">
+<!-- ================= GLOBAL CONTROLS ================= -->
+<button id="darkToggle" aria-pressed="false" aria-label="Toggle dark mode"
+        class="fixed bottom-6 right-6 z-50 bg-white/90 dark:bg-gray-800 dark:text-white text-gray-800 px-3 py-2 rounded-full shadow-lg">
+  🌙
+</button>
+
+<button id="cartToggle" aria-label="Open shopping cart" class="fixed bottom-6 right-24 z-50 bg-orange-500 text-white px-3 py-2 rounded-full shadow-lg">
+  🛒 <span id="cartCount" class="ml-2 font-semibold">0</span>
+</button>
+
+<!-- Mobile sliding nav + backdrop -->
+<div id="mobileBackdrop" class="fixed inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity z-40"></div>
+<aside id="mobilePanel"
+       class="fixed inset-y-0 left-0 w-0 md:hidden bg-white dark:bg-gray-800 shadow-xl overflow-hidden transition-all z-50"
+       aria-hidden="true">
+  <div class="p-6 h-full flex flex-col">
+    <div class="flex items-center justify-between mb-6">
+      <img src="assets/logo.png" alt="Flower Shop logo" class="w-28" />
+      <button id="mobileClose" aria-label="Close menu" class="text-2xl">✕</button>
+    </div>
+
+    <nav class="flex flex-col gap-4 text-lg" aria-label="Mobile main navigation">
       <a href="#" class="font-medium">Home</a>
       <a href="#" class="">Shop</a>
       <a href="#" class="">About</a>
       <a href="#" class="">Contact</a>
     </nav>
-  </div>
-</div>
 
-<!-- NAVBAR -->
-<header class="w-full bg-white/80 backdrop-blur sticky top-0 z-30 shadow-sm">
-  <div class="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-10 py-4">
+    <div class="mt-auto">
+      <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Follow us</p>
+      <div class="flex gap-3">
+        <img src="assets/icon-facebook.png" alt="Facebook" class="w-7" />
+        <img src="assets/icon-twitter.png" alt="Twitter" class="w-7" />
+        <img src="assets/icon-instagram.png" alt="Instagram" class="w-7" />
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ================= NAVBAR ================= -->
+<header class="w-full bg-white/90 dark:bg-gray-900/80 backdrop-blur sticky top-0 z-30 shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center justify-between">
     <div class="flex items-center gap-6">
-      <img src="assets/logo.png" alt="Flower logo" class="w-24" />
-      <div class="hidden md:flex items-center bg-white rounded-full shadow px-3 py-1">
-        <input id="search" type="search" placeholder="Search flowers, e.g. rose" class="outline-none px-2 w-64 bg-transparent" />
-        <select id="filter" class="ml-2 bg-transparent outline-none">
-          <option value="all">All</option>
+      <img src="assets/logo.png" alt="Flower Shop logo" class="w-28" />
+      <!-- Search (visible on md+) -->
+      <div class="hidden md:flex items-center bg-white dark:bg-gray-800 rounded-full shadow px-3 py-1">
+        <label for="search" class="sr-only">Search products</label>
+        <input id="search" type="search" placeholder="Search flowers, e.g. rose" class="outline-none px-2 w-64 bg-transparent text-sm" />
+        <label for="filter" class="sr-only">Filter by price</label>
+        <select id="filter" class="ml-2 bg-transparent text-sm outline-none" aria-label="Price filter">
+          <option value="all">All prices</option>
           <option value="under50">Under $50</option>
-          <option value="50to80">$50 - $80</option>
+          <option value="50to80">$50–$80</option>
           <option value="80plus">$80+</option>
         </select>
       </div>
     </div>
 
     <div class="flex items-center gap-6">
-      <ul class="hidden md:flex items-center gap-8 text-gray-700 font-medium">
-        <li><a href="#">Home</a></li>
-        <li><a href="#">Shop</a></li>
-        <li><a href="#">About</a></li>
-      </ul>
+      <nav class="hidden md:flex items-center gap-8 text-gray-700 font-medium">
+        <a href="#" class="hover:text-pink-600 transition">Home</a>
+        <a href="#" class="hover:text-pink-600 transition">Shop</a>
+        <a href="#" class="hover:text-pink-600 transition">About</a>
+      </nav>
 
-      <button id="mobileOpen" class="md:hidden text-3xl">☰</button>
+      <button id="mobileOpen" class="md:hidden text-3xl" aria-label="Open menu">☰</button>
     </div>
   </div>
 </header>
 
 <main class="max-w-7xl mx-auto px-6 md:px-10">
-  <!-- HERO -->
+
+  <!-- ================= HERO ================= -->
   <section class="flex flex-col-reverse md:flex-row items-center gap-8 py-16">
     <div class="max-w-xl animate-fadeInUp">
       <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">ALWAYS <span class="text-pink-600">FRESH FLOWERS</span></h1>
-      <p class="mt-6 text-gray-600">Premium hand-selected arrangements and plants — delivered with care.</p>
+      <p class="mt-5 text-gray-600 dark:text-gray-300">Premium hand-selected arrangements and plants — delivered with care and wrapped beautifully.</p>
       <div class="mt-6 flex gap-4">
-        <button id="ctaShop" class="bg-pink-600 text-white px-6 py-3 rounded-lg shadow hover:bg-pink-700 transition">Shop Now</button>
-        <button id="ctaExplore" class="border border-pink-600 text-pink-600 px-6 py-3 rounded-lg hover:bg-pink-50 transition">Explore</button>
+        <button id="ctaShop" class="bg-pink-600 text-white px-6 py-3 rounded-lg shadow hover:bg-pink-700 transition focus:outline-none">Shop Now</button>
+        <button id="ctaExplore" class="border border-pink-600 text-pink-600 px-6 py-3 rounded-lg hover:bg-pink-50 dark:hover:bg-gray-800 transition">Explore</button>
       </div>
     </div>
+
     <div class="w-full md:w-1/2 flex justify-center">
-      <img src="assets/hero-flower.png" alt="hero" class="w-72 md:w-[480px] animate-float drop-shadow-2xl rounded-lg" />
+      <img src="assets/hero-flower.png" alt="Hero bouquet" class="w-72 md:w-[480px] animate-float drop-shadow-2xl rounded-lg" />
     </div>
   </section>
 
-  <!-- PRODUCT CONTROLS -->
+  <!-- ================= CONTROLS ================= -->
   <section class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8">
     <div class="flex items-center gap-3">
-      <label class="text-sm text-gray-600">Sort:</label>
-      <select id="sort" class="px-3 py-2 rounded-md">
+      <label for="sort" class="sr-only">Sort products</label>
+      <select id="sort" class="px-3 py-2 rounded-md" aria-label="Sort products">
         <option value="popular">Most Popular</option>
         <option value="price-asc">Price: Low → High</option>
         <option value="price-desc">Price: High → Low</option>
@@ -91,242 +132,388 @@
     </div>
 
     <div class="flex gap-3 items-center">
-      <button id="viewGrid" class="px-3 py-2 bg-white rounded-md shadow">Grid</button>
-      <button id="viewList" class="px-3 py-2 bg-white rounded-md shadow">List</button>
+      <button id="viewGrid" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-md shadow" aria-pressed="true">Grid</button>
+      <button id="viewList" class="px-3 py-2 bg-white dark:bg-gray-800 rounded-md shadow">List</button>
     </div>
   </section>
 
-  <!-- PRODUCTS GRID (DYNAMIC) -->
-  <section id="products" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-    <!-- Cards injected by JS -->
+  <!-- ================= PRODUCTS GRID (DYNAMIC) ================= -->
+  <section id="products" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" aria-live="polite" aria-label="Products">
+    <!-- JS injects product cards here -->
   </section>
 
-  <!-- LOAD MORE -->
   <div class="text-center my-10">
     <button id="loadMore" class="px-6 py-3 bg-orange-500 text-white rounded-lg shadow">Load More</button>
   </div>
+
+  <!-- ================= FEATURE / INFO ================= -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center max-w-7xl mx-auto px-0 mb-20">
+    <div class="flex justify-center">
+      <img src="assets/flower-store.png" alt="Flower store interior" class="w-full max-w-md lg:max-w-full rounded-xl shadow-lg" />
+    </div>
+
+    <div>
+      <h2 class="font-bold text-3xl lg:text-5xl mb-6">Flower & Plants Lover</h2>
+      <ul class="text-gray-600 dark:text-gray-300 text-lg list-disc space-y-4 pl-6">
+        <li>Experience a wide variety of exotic and classic flower collections.</li>
+        <li>Freshly curated plants for your home, events, and special moments.</li>
+        <li>Premium quality plants delivered with care and love.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= LATEST DEALS ================= -->
+  <section class="max-w-7xl mx-auto px-0 mb-28">
+    <div class="text-center mb-8">
+      <h3 class="font-bold text-3xl lg:text-5xl text-orange-500">Latest <span class="text-black dark:text-white">Deals</span></h3>
+      <p class="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mt-4">Check out our exclusive seasonal deals — limited time offers!</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-7">
+      <div class="flex flex-col gap-7">
+        <div class="relative rounded-xl overflow-hidden shadow-xl">
+          <img src="assets/deal-bloom.png" alt="Bloom deal" class="w-full h-[250px] object-cover" />
+          <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
+            <p class="font-bold text-xl">60% Off | Bloom Plant</p>
+            <p class="underline mt-1">Shop Now</p>
+          </div>
+        </div>
+
+        <div class="relative rounded-xl overflow-hidden shadow-xl">
+          <img src="assets/deal-ana.png" alt="Ana deal" class="w-full h-[250px] object-cover" />
+          <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
+            <p class="font-bold text-xl">30% Off | Ana Plant</p>
+            <p class="underline mt-1">Shop Now</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2 relative rounded-xl overflow-hidden shadow-xl">
+        <img src="assets/deal-zabo.png" alt="Zabo deal" class="w-full object-cover h-[520px]" />
+        <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
+          <p class="font-bold text-3xl">25% Off | Zabo Plant</p>
+          <p class="underline mt-2 text-xl">Shop Now</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
-<!-- NEWSLETTER -->
+<!-- ================= NEWSLETTER ================= -->
 <section class="bg-[url('./assets/news-letter-bg.png')] bg-cover bg-center py-20 mt-12">
-  <div class="max-w-3xl mx-auto text-center text-white">
+  <div class="max-w-3xl mx-auto text-center text-white px-6">
     <h3 class="text-3xl font-bold mb-4">Join the Colorful Bunch</h3>
     <p class="mb-6">Get freshest deals & new arrivals in your inbox.</p>
-    <div class="flex max-w-lg mx-auto">
-      <input id="newsletterEmail" class="flex-1 px-4 py-3 rounded-l-md" placeholder="Your email" />
+    <form id="newsletterForm" class="flex max-w-lg mx-auto" role="form" aria-label="Newsletter subscription">
+      <label for="newsletterEmail" class="sr-only">Your email</label>
+      <input id="newsletterEmail" type="email" required placeholder="Your email" class="flex-1 px-4 py-3 rounded-l-md" />
       <button id="newsletterBtn" class="bg-orange-500 px-6 py-3 rounded-r-md text-white">Subscribe</button>
-    </div>
+    </form>
+    <p id="newsletterFeedback" class="mt-3 text-sm hidden" role="status"></p>
   </div>
 </section>
 
-<!-- FOOTER -->
-<footer class="bg-white border-t mt-16">
-  <div class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- ================= FOOTER ================= -->
+<footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-16 px-6 mt-16">
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
     <div>
-      <img src="assets/logo.png" alt="logo" class="w-28 mb-4" />
-      <p class="text-gray-600">Fresh flowers, delivered quickly and beautifully packaged.</p>
+      <img src="assets/logo.png" alt="Flower Shop logo" class="w-28 mb-4" />
+      <p class="text-gray-600 dark:text-gray-300">Fresh flowers, fast delivery and beautiful packaging.</p>
     </div>
+
     <div class="flex justify-between">
-      <ul class="space-y-2 text-gray-700">
+      <ul class="space-y-2 text-gray-700 dark:text-gray-300">
         <li><a href="#" class="hover:underline">Home</a></li>
         <li><a href="#" class="hover:underline">Shop</a></li>
-        <li><a href="#" class="hover:underline">About</a></li>
+        <li><a href="#" class="hover:underline">FAQ</a></li>
       </ul>
-      <ul class="space-y-2 text-gray-700">
+
+      <ul class="space-y-2 text-gray-700 dark:text-gray-300">
         <li><a href="#" class="hover:underline">Privacy</a></li>
         <li><a href="#" class="hover:underline">Terms</a></li>
         <li><a href="#" class="hover:underline">Support</a></li>
       </ul>
     </div>
+
     <div class="flex flex-col items-start gap-3">
       <div class="flex gap-3">
-        <img src="assets/icon-facebook.png" class="w-7" />
-        <img src="assets/icon-twitter.png" class="w-7" />
-        <img src="assets/icon-instagram.png" class="w-7" />
+        <img src="assets/icon-facebook.png" alt="Facebook" class="w-7" />
+        <img src="assets/icon-twitter.png" alt="Twitter" class="w-7" />
+        <img src="assets/icon-instagram.png" alt="Instagram" class="w-7" />
       </div>
-      <p class="text-sm text-gray-500">© <span id="year"></span> Flower Shop. All rights reserved.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">© <span id="year"></span> Flower Shop. All rights reserved.</p>
     </div>
   </div>
 </footer>
 
-<!-- CART DRAWER -->
-<aside id="cartDrawer" class="fixed right-0 top-0 h-full w-0 overflow-hidden bg-white shadow-lg transition-all z-50">
+<!-- ================= CART DRAWER ================= -->
+<aside id="cartDrawer" class="fixed right-0 top-0 h-full w-0 overflow-hidden bg-white dark:bg-gray-800 shadow-lg transition-all z-50" aria-hidden="true" aria-label="Shopping cart">
   <div class="p-6 flex flex-col h-full">
     <div class="flex items-center justify-between">
       <h3 class="text-xl font-bold">Your Cart</h3>
-      <button id="closeCart">✕</button>
+      <button id="closeCart" aria-label="Close cart">✕</button>
     </div>
-    <div id="cartItems" class="flex-1 mt-6 overflow-auto space-y-4"></div>
+    <div id="cartItems" class="flex-1 mt-6 overflow-auto space-y-4" aria-live="polite"></div>
     <div class="mt-4">
-      <div class="flex items-center justify-between font-bold mb-4"><span>Total</span><span id="cartTotal">$0</span></div>
+      <div class="flex items-center justify-between font-bold mb-4"><span>Total</span><span id="cartTotal">$0.00</span></div>
       <button id="checkout" class="w-full bg-pink-600 text-white py-3 rounded-lg">Checkout</button>
     </div>
   </div>
 </aside>
 
+<!-- ================= SCRIPTS ================= -->
 <script>
-/* ---------------------- DATA ---------------------- */
+/* -------------------------- Data (mock) --------------------------- */
 const PRODUCTS = [
-  { id:1, name:"Lilly Blossom", price:56, img:"assets/sample-flower-image.png", slug:"lilly-blossom" },
-  { id:2, name:"Rose Heaven", price:72, img:"assets/sample-flower-image.png", slug:"rose-heaven" },
-  { id:3, name:"Tulip Charm", price:44, img:"assets/sample-flower-image.png", slug:"tulip-charm" },
-  { id:4, name:"Daisy Bloom", price:38, img:"assets/sample-flower-image.png", slug:"daisy-bloom" },
-  { id:5, name:"Orchid Gold", price:90, img:"assets/sample-flower-image.png", slug:"orchid-gold" },
-  { id:6, name:"Blossom Mix", price:110, img:"assets/sample-flower-image.png", slug:"blossom-mix" },
-  { id:7, name:"Sunshine Petals", price:66, img:"assets/sample-flower-image.png", slug:"sunshine-petals" },
-  { id:8, name:"Garden Fresh", price:50, img:"assets/sample-flower-image.png", slug:"garden-fresh" }
+  { id:1, name:"Lilly Blossom", price:56, img:"assets/sample-flower-image.png", desc:"Soft lilies with fresh aroma."},
+  { id:2, name:"Rose Heaven", price:72, img:"assets/sample-flower-image.png", desc:"Classic roses arranged with care."},
+  { id:3, name:"Tulip Charm", price:44, img:"assets/sample-flower-image.png", desc:"Bright tulips for joyful days."},
+  { id:4, name:"Daisy Bloom", price:38, img:"assets/sample-flower-image.png", desc:"Cheerful daisies, perfect gift."},
+  { id:5, name:"Orchid Gold", price:90, img:"assets/sample-flower-image.png", desc:"Elegant orchids for special moments."},
+  { id:6, name:"Blossom Mix", price:110, img:"assets/sample-flower-image.png", desc:"Premium mixed bouquet."},
+  { id:7, name:"Sunshine Petals", price:66, img:"assets/sample-flower-image.png", desc:"Sunny petals to brighten any room."},
+  { id:8, name:"Garden Fresh", price:50, img:"assets/sample-flower-image.png", desc:"Fresh-picked garden variety."}
 ];
 
-/* ---------------------- UI HOOKS ---------------------- */
+/* -------------------------- Element refs -------------------------- */
 const productsEl = document.getElementById('products');
 const searchEl = document.getElementById('search');
 const filterEl = document.getElementById('filter');
-const sortEl = document.getElementById('sort');
+const sortEl   = document.getElementById('sort');
 const loadMoreBtn = document.getElementById('loadMore');
+
+const darkToggle = document.getElementById('darkToggle');
+const mobileOpen = document.getElementById('mobileOpen');
+const mobileClose = document.getElementById('mobileClose');
+const mobilePanel = document.getElementById('mobilePanel');
+const mobileBackdrop = document.getElementById('mobileBackdrop');
+
 const cartToggle = document.getElementById('cartToggle');
 const cartDrawer = document.getElementById('cartDrawer');
 const cartItemsEl = document.getElementById('cartItems');
 const cartCountEl = document.getElementById('cartCount');
 const cartTotalEl = document.getElementById('cartTotal');
-const closeCartBtn = document.getElementById('closeCart');
-let visibleCount = 8; // pagination
-let cart = JSON.parse(localStorage.getItem('cart')||'[]');
+const closeCart = document.getElementById('closeCart');
 
-/* ---------------------- RENDER PRODUCTS ---------------------- */
-function priceFilter(product, filter){
-  if(filter==='all') return true;
-  if(filter==='under50') return product.price<50;
-  if(filter==='50to80') return product.price>=50 && product.price<=80;
-  if(filter==='80plus') return product.price>80;
+const newsletterForm = document.getElementById('newsletterForm');
+const newsletterFeedback = document.getElementById('newsletterFeedback');
+
+let visibleCount = 8; // paging
+let cart = JSON.parse(localStorage.getItem('flower_cart')||'[]');
+
+/* ------------------------ Utility helpers ------------------------- */
+function persistCart(){ localStorage.setItem('flower_cart', JSON.stringify(cart)); }
+function formatPrice(v){ return `$${v.toFixed(2)}`; }
+
+/* ------------------------ Dark mode (persistent) ------------------ */
+function applySavedTheme(){
+  const theme = localStorage.getItem('flower_theme');
+  if(theme === 'dark'){
+    document.documentElement.classList.add('dark');
+    document.body.classList.add('bg-gray-900');
+    darkToggle.setAttribute('aria-pressed','true');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('bg-gray-900');
+    darkToggle.setAttribute('aria-pressed','false');
+  }
+}
+applySavedTheme();
+darkToggle.addEventListener('click', ()=>{
+  const isDark = document.documentElement.classList.toggle('dark');
+  if(isDark) {
+    document.body.classList.add('bg-gray-900');
+    localStorage.setItem('flower_theme','dark');
+    darkToggle.setAttribute('aria-pressed','true');
+  } else {
+    document.body.classList.remove('bg-gray-900');
+    localStorage.setItem('flower_theme','light');
+    darkToggle.setAttribute('aria-pressed','false');
+  }
+});
+
+/* ------------------------ Mobile nav panel ------------------------ */
+function openMobile(){
+  mobilePanel.style.width = '320px';
+  mobilePanel.setAttribute('aria-hidden','false');
+  mobileBackdrop.style.opacity = '1';
+  mobileBackdrop.classList.remove('pointer-events-none');
+  mobileBackdrop.classList.add('backdrop-blur-fixed');
+}
+function closeMobile(){
+  mobilePanel.style.width = '0';
+  mobilePanel.setAttribute('aria-hidden','true');
+  mobileBackdrop.style.opacity = '0';
+  mobileBackdrop.classList.add('pointer-events-none');
+  mobileBackdrop.classList.remove('backdrop-blur-fixed');
+}
+mobileOpen?.addEventListener('click', openMobile);
+mobileClose?.addEventListener('click', closeMobile);
+mobileBackdrop.addEventListener('click', closeMobile);
+
+/* ------------------------ Products render ------------------------ */
+function priceFilter(product, filterVal){
+  if(!filterVal || filterVal === 'all') return true;
+  if(filterVal === 'under50') return product.price < 50;
+  if(filterVal === '50to80') return product.price >=50 && product.price <=80;
+  if(filterVal === '80plus') return product.price > 80;
+  return true;
+}
+function applySearchFilterSort(){
+  const q = (searchEl?.value || '').trim().toLowerCase();
+  const f = (filterEl?.value || 'all');
+  const s = (sortEl?.value || 'popular');
+
+  let arr = PRODUCTS.filter(p => {
+    return p.name.toLowerCase().includes(q) && priceFilter(p, f);
+  });
+
+  if(s === 'price-asc') arr.sort((a,b)=>a.price-b.price);
+  if(s === 'price-desc') arr.sort((a,b)=>b.price-a.price);
+  return arr;
 }
 
-function applySearchFilterSort(){
-  const q = searchEl?.value?.toLowerCase() || '';
-  const f = filterEl?.value || 'all';
-  const s = sortEl?.value || 'popular';
-
-  let arr = PRODUCTS.filter(p=> p.name.toLowerCase().includes(q) && priceFilter(p,f));
-
-  if(s==='price-asc') arr.sort((a,b)=>a.price-b.price);
-  if(s==='price-desc') arr.sort((a,b)=>b.price-a.price);
-
-  return arr;
+function productCardHTML(p){
+  return `
+    <article class="bg-white dark:bg-gray-800 rounded-xl shadow card-enter" data-id="${p.id}" tabindex="0" aria-labelledby="p${p.id}-title">
+      <div class="h-40 overflow-hidden rounded-t-xl">
+        <img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover" />
+      </div>
+      <div class="p-4 text-center">
+        <h4 id="p${p.id}-title" class="font-semibold">${p.name}</h4>
+        <p class="text-orange-500 font-bold mt-1">${formatPrice(p.price)}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-300 mt-2">${p.desc}</p>
+        <div class="mt-4 flex gap-2">
+          <button class="addToCart flex-1 py-2 rounded-md bg-orange-500 text-white focus:outline-none" data-id="${p.id}" aria-label="Add ${p.name} to cart">Add</button>
+          <button class="viewBtn border px-3 py-2 rounded-md focus:outline-none" data-id="${p.id}" aria-label="View ${p.name} details">View</button>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
 function renderProducts(){
   const data = applySearchFilterSort();
   const show = data.slice(0, visibleCount);
-
-  productsEl.innerHTML = show.map(p=> productCardHTML(p)).join('');
-  attachAddListeners();
+  productsEl.innerHTML = show.map(p => productCardHTML(p)).join('');
+  // attach listeners
+  document.querySelectorAll('.addToCart').forEach(btn => btn.onclick = ()=> addToCart(btn.dataset.id));
+  document.querySelectorAll('.viewBtn').forEach(btn => btn.onclick = ()=> showProductModal(btn.dataset.id));
+  // stagger entrance
+  document.querySelectorAll('.card-enter').forEach((el,i) => setTimeout(()=> el.classList.add('show'), i*80));
 }
 
-function productCardHTML(p){
-  return `
-  <div class="bg-white rounded-xl shadow card-enter" data-id="${p.id}">
-    <div class="h-40 overflow-hidden rounded-t-xl">
-      <img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover" />
-    </div>
-    <div class="p-4 text-center">
-      <h4 class="font-semibold">${p.name}</h4>
-      <p class="text-orange-500 font-bold mt-1">$${p.price}</p>
-      <div class="mt-4 flex gap-2">
-        <button class="addToCart flex-1 py-2 rounded-md bg-orange-500 text-white" data-id="${p.id}">Add</button>
-        <button class="viewBtn border px-3 py-2 rounded-md" data-id="${p.id}">View</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-/* ---------------------- CART ---------------------- */
-function saveCart(){ localStorage.setItem('cart', JSON.stringify(cart)); }
+/* ------------------------ Add to cart & drawer -------------------- */
 function updateCartUI(){
-  cartCountEl.textContent = cart.reduce((s,i)=>s+i.qty,0);
-  cartItemsEl.innerHTML = cart.map(item=>`
+  cartCountEl.textContent = cart.reduce((s,i)=> s + i.qty, 0);
+  cartItemsEl.innerHTML = cart.map(item => `
     <div class="flex items-center gap-3">
-      <img src="${item.img}" class="w-14 h-14 object-cover rounded" />
+      <img src="${item.img}" alt="${item.name}" class="w-14 h-14 object-cover rounded" />
       <div class="flex-1">
         <div class="font-semibold">${item.name}</div>
-        <div class="text-sm text-gray-500">$${item.price} x ${item.qty}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-300">${formatPrice(item.price)} x ${item.qty}</div>
       </div>
       <div class="flex flex-col gap-1">
-        <button class="inc" data-id="${item.id}">+</button>
-        <button class="dec" data-id="${item.id}">-</button>
+        <button class="inc" data-id="${item.id}" aria-label="Increase quantity">+</button>
+        <button class="dec" data-id="${item.id}" aria-label="Decrease quantity">-</button>
       </div>
     </div>
-  `).join('');
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  cartTotalEl.textContent = `$${total.toFixed(2)}`;
-  saveCart();
+  `).join('') || '<p class="text-sm text-gray-500">Your cart is empty.</p>';
+  cartTotalEl.textContent = formatPrice(cart.reduce((s,i)=> s + i.price * i.qty, 0));
+  persistCart();
 }
 
 function addToCart(id){
-  const prod = PRODUCTS.find(p=>p.id===+id);
-  const exist = cart.find(x=>x.id===prod.id);
-  if(exist) exist.qty++;
-  else cart.push({...prod, qty:1});
+  const pid = Number(id);
+  const prod = PRODUCTS.find(p => p.id === pid);
+  if(!prod) return;
+  const found = cart.find(c => c.id === pid);
+  if(found) found.qty += 1;
+  else cart.push({ ...prod, qty: 1 });
   updateCartUI();
   openCart();
 }
 
-function attachAddListeners(){
-  document.querySelectorAll('.addToCart').forEach(btn=> btn.onclick = ()=> addToCart(btn.dataset.id));
-  document.querySelectorAll('.viewBtn').forEach(btn=> btn.onclick = ()=> alert('Product view coming soon'));
-}
-
-// adjust qty
-cartItemsEl.addEventListener('click', (e)=>{
-  if(e.target.classList.contains('inc')||e.target.classList.contains('dec')){
-    const id = +e.target.dataset.id;
-    const item = cart.find(c=>c.id===id);
-    if(!item) return;
-    if(e.target.classList.contains('inc')) item.qty++;
-    else item.qty--;
-    if(item.qty<=0) cart = cart.filter(c=>c.id!==id);
+cartItemsEl.addEventListener('click', (ev) => {
+  if(ev.target.classList.contains('inc') || ev.target.classList.contains('dec')){
+    const id = Number(ev.target.dataset.id);
+    const idx = cart.findIndex(c => c.id === id);
+    if(idx === -1) return;
+    if(ev.target.classList.contains('inc')) cart[idx].qty += 1;
+    else cart[idx].qty -= 1;
+    if(cart[idx].qty <= 0) cart.splice(idx,1);
     updateCartUI();
   }
 });
 
-/* ---------------------- UI EVENTS ---------------------- */
-searchEl?.addEventListener('input', ()=> renderProducts());
-filterEl?.addEventListener('change', ()=> renderProducts());
+function openCart(){
+  cartDrawer.style.width = '380px';
+  cartDrawer.setAttribute('aria-hidden','false');
+  updateCartUI();
+}
+function closeCartFn(){
+  cartDrawer.style.width = '0';
+  cartDrawer.setAttribute('aria-hidden','true');
+}
+cartToggle?.addEventListener('click', openCart);
+closeCart?.addEventListener('click', closeCartFn);
+
+/* --------------------------- Product modal ----------------------- */
+function showProductModal(id){
+  // Simple placeholder: can be expanded into a real modal/gallery
+  const p = PRODUCTS.find(x=> x.id === Number(id));
+  if(!p) return alert(`${p?.name}`);
+}
+
+/* --------------------------- Search / controls ------------------- */
+searchEl?.addEventListener('input', ()=> { visibleCount = 8; renderProducts(); });
+filterEl?.addEventListener('change', ()=> { visibleCount = 8; renderProducts(); });
 sortEl?.addEventListener('change', ()=> renderProducts());
 
+document.getElementById('viewGrid')?.addEventListener('click', ()=> {
+  productsEl.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6';
+});
+document.getElementById('viewList')?.addEventListener('click', ()=> {
+  productsEl.className = 'grid grid-cols-1 gap-6';
+});
+
+/* --------------------------- Load more --------------------------- */
 loadMoreBtn?.addEventListener('click', ()=>{
   visibleCount += 8;
   renderProducts();
 });
 
-// Mobile nav open/close
-const mobileOpen = document.getElementById('mobileOpen');
-const mobilePanel = document.getElementById('mobilePanel');
-const mobileClose = document.getElementById('mobileClose');
-mobileOpen?.addEventListener('click', ()=> mobilePanel.style.width = '280px');
-mobileClose?.addEventListener('click', ()=> mobilePanel.style.width = '0');
-
-// Dark toggle
-const darkToggle = document.getElementById('darkToggle');
-darkToggle.addEventListener('click', ()=>{
-  document.documentElement.classList.toggle('dark');
-  document.body.classList.toggle('bg-gray-900');
-  document.body.classList.toggle('text-white');
+/* --------------------------- Newsletter -------------------------- */
+newsletterForm?.addEventListener('submit', (ev)=> {
+  ev.preventDefault();
+  const email = document.getElementById('newsletterEmail').value.trim();
+  if(!email || !email.includes('@')) {
+    newsletterFeedback.className = 'mt-3 text-sm text-red-400';
+    newsletterFeedback.textContent = 'Please enter a valid email.';
+    newsletterFeedback.classList.remove('hidden');
+    return;
+  }
+  newsletterFeedback.className = 'mt-3 text-sm text-green-400';
+  newsletterFeedback.textContent = 'Thanks — you are subscribed!';
+  newsletterFeedback.classList.remove('hidden');
+  newsletterForm.reset();
 });
 
-// cart drawer
-cartToggle?.addEventListener('click', openCart);
-closeCartBtn?.addEventListener('click', closeCart);
-function openCart(){ cartDrawer.style.width = '360px'; updateCartUI(); }
-function closeCart(){ cartDrawer.style.width = '0'; }
-
-// initial render
+/* --------------------------- Init & helpers ---------------------- */
 function init(){
   document.getElementById('year').textContent = new Date().getFullYear();
   renderProducts();
-  // card entrance animation
-  setTimeout(()=> document.querySelectorAll('.card-enter').forEach((c,i)=> setTimeout(()=> c.classList.add('show'), i*80)), 50);
+  updateCartUI();
+  // load persisted cart if any already applied above
+  // add keyboard accessibility: close mobile w/ Escape, close cart w/ Escape
+  document.addEventListener('keydown', (ev)=> {
+    if(ev.key === 'Escape'){ closeMobile(); closeCartFn(); }
+  });
 }
 init();
 
 </script>
+
 </body>
 </html>
